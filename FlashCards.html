@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!---   
+
+	Ver. 2.1
+		o simplify card counting.
+		o background grey a little darker
+	Ver. 2.0
+		o Adds a button for whether front or back of card
+		  is shown 1st.
+		o Fixes a bug in the built-in flash cards.
+	
+-->
+
+<textarea readonly onclick="gotClick()" id="tArea" rows="10" cols="20" style="font-size: 36px;text-align: center;">
+
+
+FlashCards Ver. 2.1
+
+
+</textarea>
+
+<p>
+Select a Flash Cards file: 
+<input type="file" id="fileInput">
+</p>
+<p>
+Change to show   
+<input type="button" id="reverseButton" onclick="reverseClick()" value="Back">
+first.
+</p>
+
+<script>
+
+// Contents of a "built-in" flash card file
+
+var defaultCards = "Flash Cards		New England States\n\
+Massachusetts	Boston\n\
+New Hampshire	Concord\n\
+Maine	Augusta\n\
+Connecticut	Hartford\n\
+Vermont	Montpelier\n"
+
+var tArea = document.getElementById("tArea");
+var title = "";
+var cardFronts;
+var cardBacks;
+var cardOrder = [];
+var sidesDone = 0;
+var cardNum = 0;
+var totalCards = 0;
+var cardsState = "Title";
+var fileInput;
+var startTime;
+var endTime;
+var backsFirst = false;
+
+
+window.onload = function() {
+
+        fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('change', readFile);
+
+		totalCards = loadCards(defaultCards);
+
+		cardsState = "Title";
+}
+
+function gotClick()
+{
+	// Check the state 
+
+	if(cardsState === "Title") {
+		tArea.style.backgroundColor = "white";
+		tArea.value = "\n\n" + title;
+		cardNum = 0;
+		sidesDone = 0;
+		cardOrder = randomOrder(totalCards);
+		cardsState = "Starting";
+	}
+
+	else if(cardsState === "Starting") {
+
+		if(backsFirst)  // show back of card first
+			cardsState = "Back";
+		else
+			cardsState = "Front";
+
+		startTime = new Date();
+
+		gotClick();  // and continue without a user click
+	}
+	else if(cardsState === "Front") {
+		tArea.style.backgroundColor = "white";
+		tArea.value = "\n\n" + cardFronts[cardOrder[cardNum]];
+		cardsState = "Back";
+
+		sidesDone++;  // two sides to a card
+
+	}
+	else if(cardsState === "Back") {
+		tArea.style.backgroundColor = "#e8e8e8"; // light grey
+		tArea.value = "\n\n" + cardBacks[cardOrder[cardNum]];
+		cardsState = "Front";
+
+		sidesDone++;  // two sides to a card
+
+	}
+	else if(cardsState === "Time") {
+
+		displayElapsedTime(elapsedTime);
+		cardsState = "Title";
+		
+	}
+
+	if(sidesDone == 2) {  // 2 sides = 1 card
+		cardNum++;
+		sidesDone = 0;
+
+		if(cardNum >= totalCards) {
+			cardNum = 0;
+			endTime = new Date();
+			elapsedTime = endTime - startTime;
+			cardsState = "Time";
+		}
+	}
+}
+
+function readFile()
+{
+
+	var file = fileInput.files[0];
+	var textType = /text.*/;
+
+	if (file.type.match(textType)) {
+		var reader = new FileReader();
+
+		reader.onload = function(e) {
+			fileString = reader.result;
+			totalCards = loadCards(fileString);
+			if(totalCards === 0) {
+				// alert("Problem loading cards");
+				// alert already posted by called function
+				fileInput.value = ""; // clear file name
+			}
+			else {
+
+				gotClick();  // start displaying
+			}
+			// fileInput.value = ''; // clear file name so
+			// we load same file twice for debugging
+		}
+
+		reader.readAsText(file);    
+
+	} else {
+		alert("File is not a Text File");
+	}
+
+}
+
+function loadCards(fileString)
+{
+
+	// Form array of strings, one per line
+
+	var lines = fileString.split(RegExp("[\r\n]"));
+
+	// Look for keyword "flash card" and title in first line
+
+	var firstLineStrings = lines[0].split(new RegExp("\t+"));
+
+	if(firstLineStrings.length != 2) {
+
+		alert("First line must contain keyword and title" +
+				"\n" + lines[0]);
+		return 0;
+	}
+
+	var keyWord = firstLineStrings[0]; // 1st line contains key word
+
+	console.log(keyWord);
+
+	if(!keyWord.toLowerCase().startsWith("flash card")) {
+		alert("No \"Flash Card\" keyword on first line of file");
+		return 0;
+	}
+
+	title = firstLineStrings[1];
+	console.log("Title = " + title);
+	cardFronts = [""];
+	cardBacks = [""];
+	splitOn = new RegExp("\t+");
+
+	var nCards = 0;
+
+	for(i = 1; i < lines.length; i++) {
+
+		// skip empty lines or lines with only white space
+
+		if(lines[i].trim() === "") {
+			// alert("Got empty line");
+			continue;
+		}
+
+		tmp = lines[i].split(splitOn);
+
+		// Report lines without two entries or second entry is blank
+
+		if(tmp.length < 2 || tmp[1].length === 0) {
+			alert("Found a line without two entries\n" + lines[i]);
+				// "hex " + lines[i].charCodeAt(0) );
+			continue;
+		}
+
+		cardFronts[nCards] = tmp[0];
+		cardBacks[nCards] = tmp[1];
+		nCards++;
+		
+	}
+	cardsState = "Title";
+	return nCards;
+}
+
+function randomOrder(size)
+{
+	var order = [];
+
+	for(var i = 0; i < size; i++)
+		order.push(-1);
+	
+
+	for(i = 0; i < size; )
+	{
+		n = Math.floor(Math.random() * size);
+		if(order[n] == -1) {
+			order[n] = i;
+			i++;
+		}
+		else	// slot already filled try another random number
+			continue;
+	}
+	return order;
+
+}
+
+function displayElapsedTime(milsecs) {
+
+	tArea.style.backgroundColor = "lightblue"; // 
+
+	seconds = Math.round(milsecs / 1000);
+	hours = Math.floor(seconds / 3600);
+	seconds = Math.floor(seconds % 3600);
+	minutes = Math.floor(seconds / 60);
+	seconds = Math.floor(seconds % 60);
+
+	if(seconds == 1)
+		secString = " second\n"
+	else
+		secString = " seconds\n";
+
+	if(minutes == 1)
+		minString = " minute\n"
+	else
+		minString = " minutes\n";
+
+	if(hours > 0) {
+		if(hours > 1)
+			hrString = " hours\n";
+		else {
+			hrString = " hour\n";
+		}
+		tArea.value = "\n\n" + hours + hrString +
+			minutes + minString;
+	}
+	else {
+
+		tArea.value = "\n\n" + minutes + minString +
+			seconds + secString;
+	}
+}
+function reverseClick()
+{
+
+	revButton  = document.getElementById("reverseButton");
+	var sideToShowFirst = revButton.value;
+
+	if(sideToShowFirst == "Back") {
+		revButton.value = "Front";
+		backsFirst = true;
+	}
+	else {
+		revButton.value  = "Back";
+		backsFirst = false;
+	}
+
+}
+</script>
+</body>
+</html>
+
