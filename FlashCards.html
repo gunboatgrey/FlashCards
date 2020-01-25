@@ -322,7 +322,7 @@ function when_selected()
 function gotCards(text)
 {
     // alert("Got Cards = " + text);
-    totalCards = loadCards(defaultCards);
+    totalCards = loadCards(text);
 
     cardsState = "Title";
     if(totalCards === 0) {
