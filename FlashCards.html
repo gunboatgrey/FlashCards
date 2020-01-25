@@ -3,6 +3,9 @@
 <body>
 
 <!---   
+	Ver. 3.0
+		o Github Pages version that reads card files from server
+		o 
 
 	Ver. 2.1
 		o simplify card counting.
@@ -299,6 +302,44 @@ function reverseClick()
 
 }
 </script>
+
+<div id="div_for_select">
+<h2> Select a built in card file </h2>
+<select id="mySelect" onchange="when_selected()">
+</select>
+</div>
+
+<script src="fileSupport.js"></script>
+<script>
+
+appendFileNames("mySelect");
+
+function when_selected()
+{
+    var fileName = document.getElementById("mySelect").value;
+    readServerFile(gotCards, fileName);
+}
+function gotCards(text)
+{
+    // alert("Got Cards = " + text);
+    totalCards = loadCards(defaultCards);
+
+    cardsState = "Title";
+    if(totalCards === 0) {
+         alert("Problem loading cards");
+         // alert already posted by called function
+         //fileInput.value = ""; // clear file name
+     }
+     else {
+
+        gotClick();  // start displaying
+     }
+ 
+}
+</script>
+</body>
+</html>
+
 </body>
 </html>
 
